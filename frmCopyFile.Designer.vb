@@ -116,9 +116,9 @@ Partial Class frmCopyFile
         Me.lblCikarilan.ForeColor = System.Drawing.Color.Black
         Me.lblCikarilan.Location = New System.Drawing.Point(578, 43)
         Me.lblCikarilan.Name = "lblCikarilan"
-        Me.lblCikarilan.Size = New System.Drawing.Size(72, 16)
+        Me.lblCikarilan.Size = New System.Drawing.Size(78, 16)
         Me.lblCikarilan.TabIndex = 7
-        Me.lblCikarilan.Text = "Çıkarılanlar"
+        Me.lblCikarilan.Text = "Yenilenenler"
         '
         'frmCopyFile
         '
