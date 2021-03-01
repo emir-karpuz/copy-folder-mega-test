@@ -56,14 +56,14 @@ Public Class frmCopyFile
     Private Function getFileName(fileName As String) As String
         Dim fileNamePieces As String() = Nothing
 
-        fileExtension = Path.GetExtension(fileName)
-        fileExtension = Strings.Right(fileExtension, fileExtension.Length - 1)
+        fileExtension = Path.GetExtension(fileName) '.dll
+        fileExtension = Strings.Right(fileExtension, fileExtension.Length - 1)  'dll
 
         If fileName.Contains("\EXE") Then
             fileNamePieces = Split(fileName, "\")
             fileName = Strings.Left(fileNamePieces(2), fileNamePieces(2).Length - 4)  'deneme.txt -> deneme, fileNamePieces(2)'da tutuluyor
         Else
-            fileName = Strings.Left(fileName, InStr(fileName, ".") - 1)
+            fileName = Strings.Left(fileName, fileName.Length - Path.GetExtension(fileName).Length) 'Haali\avi.x64.dll -> Haali\avi.x64
         End If
 
         Return fileName
@@ -232,6 +232,31 @@ Public Class frmCopyFile
     '    Dim exeOldFolder As String = exeOldPath & "\" & getFolderName(EXEnewFolder)
     '    Directory.CreateDirectory(exeOldFolder)   'EXENEW'DEKİ KLASÖRLERİN TAMAMI EXEOLD'DA OLUŞTURULUR
     'Next
+
+#End Region
+
+#Region "Old GetFileName"
+
+    '''' <summary>
+    '''' Dosya adını alır ve uzantısından ayırıp döndürür
+    '''' </summary>
+    '''' <param name="fileName"></param>
+    '''' <returns></returns>
+    'Private Function getFileName(fileName As String) As String
+    '    Dim fileNamePieces As String() = Nothing
+
+    '    fileExtension = Path.GetExtension(fileName)
+    '    fileExtension = Strings.Right(fileExtension, fileExtension.Length - 1)
+
+    '    If fileName.Contains("\EXE") Then
+    '        fileNamePieces = Split(fileName, "\")
+    '        fileName = Strings.Left(fileNamePieces(2), fileNamePieces(2).Length - 4)  'deneme.txt -> deneme, fileNamePieces(2)'da tutuluyor
+    '    Else
+    '        fileName = Strings.Left(fileName, InStr(fileName, ".") - 1)
+    '    End If
+
+    '    Return fileName
+    'End Function
 
 #End Region
 
