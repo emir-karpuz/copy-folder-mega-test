@@ -110,16 +110,17 @@ Public Class frmCopyFile
 
             For Each item In copyList
                 If File.Exists(debugPath & "\" & item) Then
-                    My.Computer.FileSystem.CopyFile(debugPath & "\" & item,
+                    My.Computer.FileSystem.MoveFile(debugPath & "\" & item,
                                                     exeOldPath & "\" & getFileName(item) & "_" & getFileDay() & "_" & randomNumber.ToString & "." & fileExtension)
                     EXEoldFileIndex += 1
                     txtOldFiles.Text += EXEoldFileIndex & ". Eski Dosya Çıkarıldı: " & getFileName(item) & "_" & getFileDay() &
                                                                                               "_" & randomNumber.ToString & "." & fileExtension & vbCrLf
-                Else
-                    My.Computer.FileSystem.CopyFile(exeNewPath & "\" & item, debugPath & "\" & item)
-                    EXEnewFileIndex += 1
-                    txtNewFiles.Text += EXEnewFileIndex & ". Yeni Dosya Eklendi: " & item & vbCrLf
                 End If
+
+                My.Computer.FileSystem.CopyFile(exeNewPath & "\" & item, debugPath & "\" & item)
+                EXEnewFileIndex += 1
+                txtNewFiles.Text += EXEnewFileIndex & ". Yeni Dosya Eklendi: " & item & vbCrLf
+
             Next
 
             lblResult.Text &= "İşlem Başarılı"
