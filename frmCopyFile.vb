@@ -5,6 +5,11 @@ Public Class frmCopyFile
 #Region "Class Fields"
 
     ''' <summary>
+    ''' Dosyaların gridde gösterilmesi için kullanılacak datatable
+    ''' </summary>
+    Dim filesDT As New DataTable
+
+    ''' <summary>
     ''' Rastgele sayı
     ''' </summary>
     Dim randomNumber As Integer = 0
@@ -20,29 +25,14 @@ Public Class frmCopyFile
     Dim EXEnewFileCount As Integer = 0
 
     ''' <summary>
-    ''' Debug klasörünün yolunu tutar
+    ''' Kopyalanacak mERPot.exe yolu
     ''' </summary>
-    ReadOnly debugPath As String = Application.StartupPath
+    Dim copyToPath As String = String.Empty
 
     ''' <summary>
-    ''' EXEnew klasörünün yolunu tutar
+    ''' EXEnew klasörünün yolu
     ''' </summary>
-    ReadOnly exeNewPath As String = debugPath & "\EXEnew\"
-
-    ''' <summary>
-    ''' EXEold klasörünün yolunu tutar
-    ''' </summary>
-    ReadOnly exeOldPath As String = debugPath & "\EXEold\"
-
-    ''' <summary>
-    ''' EXEnew Klasörlerinin adlarını alır
-    ''' </summary>
-    ReadOnly EXEnewFolders() As String = Directory.GetDirectories(exeNewPath, "*.*", SearchOption.AllDirectories)
-
-    ''' <summary>
-    ''' EXEnew Dosyalarının adlarını alır
-    ''' </summary>
-    ReadOnly EXEnewFiles() As String = Directory.GetFiles(".\EXEnew\", "*.*", SearchOption.AllDirectories)
+    Dim copyFromPath As String = String.Empty
 
 #End Region
 
@@ -92,15 +82,16 @@ Public Class frmCopyFile
     ''' Programa ait dosyaları ve klasörleri EXEnew'dekilerle değişir ve eskilerini EXEold'a atar
     ''' </summary>
     Private Sub updateProgram()
-
-        Dim copyList As New ArrayList
-        Dim EXEnewFileIndex As Integer = 0
-        Dim EXEoldFileIndex As Integer = 0
-
-        Dim random As New Random
-        randomNumber = random.Next(1000, 9999)
-
         Try
+            Dim EXEnewFiles() As String = Directory.GetFiles($"{copyFromPath}\EXEnew\", "*.*", SearchOption.AllDirectories)
+            Dim exeOldPath As String = copyToPath & "\EXEold\"
+            Dim exeNewPath As String = copyFromPath & "\EXEnew\"
+            Dim copyList As New ArrayList
+            Dim EXEnewFileIndex As Integer = 0
+            Dim EXEoldFileIndex As Integer = 0
+            Dim random As New Random
+            randomNumber = random.Next(1000, 9999)
+
             For Each EXEnewFile As String In EXEnewFiles            'KOPYALANACAK DOSYALARIN LİSTESİ OLUŞTURULUR
                 If Not EXEnewFile.Contains("desktop.ini") Then
                     copyList.Add(getFolderName(EXEnewFile))
@@ -109,39 +100,92 @@ Public Class frmCopyFile
             Next
 
             For Each item In copyList
-                If File.Exists(debugPath & "\" & item) Then
-                    My.Computer.FileSystem.MoveFile(debugPath & "\" & item,
-                                                    exeOldPath & "\" & getFileName(item) & "_" & getFileDay() & "_" & randomNumber.ToString & "." & fileExtension)
+                Dim filesDR As DataRow = filesDT.NewRow
+                If File.Exists($"{copyToPath}\{item}") Then
+                    My.Computer.FileSystem.MoveFile($"{copyToPath}\{item}", $"{exeOldPath}\{getFileName(item)}_{getFileDay()}_{randomNumber}.{fileExtension}")
                     EXEoldFileIndex += 1
-                    txtOldFiles.Text += EXEoldFileIndex & ". Eski Dosya Çıkarıldı: " & getFileName(item) & "_" & getFileDay() &
-                                                                                              "_" & randomNumber.ToString & "." & fileExtension & vbCrLf
+                    filesDR("EskiDosya") = $"{getFileName(item)}_{getFileDay()}_{randomNumber}.{fileExtension}"
                 End If
 
-                My.Computer.FileSystem.CopyFile(exeNewPath & "\" & item, debugPath & "\" & item)
+                My.Computer.FileSystem.CopyFile($"{exeNewPath}\{item}", $"{copyToPath}\{item}")
                 EXEnewFileIndex += 1
-                txtNewFiles.Text += EXEnewFileIndex & ". Yeni Dosya Eklendi: " & item & vbCrLf
-
+                filesDR("YeniDosya") = $"{item}"
+                filesDT.Rows.Add(filesDR)
+                bgWorker.ReportProgress((EXEnewFileIndex / copyList.Count) * 100)
             Next
-
-            lblResult.Text &= "İşlem Başarılı"
-            lblNewFiles.Text &= EXEnewFileCount
-
         Catch ex As Exception
-            MessageBox.Show(ex.Message, "Error")
+            MessageBox.Show(ex.Message, "Hata")
         End Try
-
     End Sub
 
 #End Region
 
 #Region "Form Events"
 
-    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles Me.Load
+    Private Sub frmCopyFile_Load(sender As Object, e As EventArgs) Handles Me.Load
+        filesDT.Columns.Add("EskiDosya") : filesDT.Columns.Add("YeniDosya")
+        dgvFiles.DataSource = filesDT
+        dgvFiles.Columns(0).HeaderText = "EXEold'a giden dosyalar" : dgvFiles.Columns(1).HeaderText = "EXEnew'den alınan dosyalar"
+        If File.Exists($"{Application.UserAppDataPath}\mERPotTo.txt") Then copyToPath = File.ReadAllText($"{Application.UserAppDataPath}\mERPotTo.txt")
+        If File.Exists($"{Application.UserAppDataPath}\mERPotFrom.txt") Then copyFromPath = File.ReadAllText($"{Application.UserAppDataPath}\mERPotFrom.txt")
+        lblCopyToPath.Text = copyToPath : lblCopyFromPath.Text = copyFromPath
+    End Sub
+
+    Private Sub bgWorker_DoWork(sender As Object, e As System.ComponentModel.DoWorkEventArgs) Handles bgWorker.DoWork
         updateProgram()
     End Sub
 
+    Private Sub bgWorker_ProgressChanged(sender As Object, e As System.ComponentModel.ProgressChangedEventArgs) Handles bgWorker.ProgressChanged
+        prgbarSpinner.Value = e.ProgressPercentage
+        dgvFiles.Refresh()
+    End Sub
+
+    Private Sub bgWorker_RunWorkerCompleted(sender As Object, e As System.ComponentModel.RunWorkerCompletedEventArgs) Handles bgWorker.RunWorkerCompleted
+        If EXEnewFileCount = 0 Then
+            lblCount.Text = "Hata oluştu."
+            btnCopyToPath.Enabled = True
+            btnCopyFromPath.Enabled = True
+            btnStart.Enabled = True
+        Else
+            lblCount.Text = $"İşlem tamanlandı. {EXEnewFileCount} dosya kopyalandı."
+            prgbarSpinner.Style = MetroFramework.MetroColorStyle.Green : prgbarSpinner.Refresh()
+        End If
+    End Sub
+
+    Private Sub btnStart_Click(sender As Object, e As EventArgs) Handles btnStart.Click
+        If copyToPath = String.Empty Then MessageBox.Show("Lütfen kopyalanacak yolu seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Information) : Return
+        If copyFromPath = String.Empty Then MessageBox.Show("Lütfen kopyalayacak yolu seçiniz.", "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Information) : Return
+        btnStart.Enabled = False
+        btnCopyToPath.Enabled = False
+        lblCount.Text = "Kopyalanıyor"
+        bgWorker.RunWorkerAsync()
+    End Sub
+
+    Private Sub btnCopyToPath_Click(sender As Object, e As EventArgs) Handles btnCopyToPath.Click
+        Dim dialogResult As DialogResult = fbdSearch.ShowDialog
+        If dialogResult = DialogResult.OK Then copyToPath = fbdSearch.SelectedPath
+        lblCopyToPath.Text = copyToPath
+        If File.Exists($"{Application.UserAppDataPath}\mERPotTo.txt") Then File.Delete($"{Application.UserAppDataPath}\mERPotTo.txt")
+        File.WriteAllText($"{Application.UserAppDataPath}\mERPotTo.txt", copyToPath)
+    End Sub
+
+    Private Sub btnCopyFromPath_Click(sender As Object, e As EventArgs) Handles btnCopyFromPath.Click
+        Dim dialogResult As DialogResult = fbdSearch.ShowDialog
+        If dialogResult = DialogResult.OK Then
+            If fbdSearch.SelectedPath.Contains("\EXEnew") Then MessageBox.Show("Lütfen EXEnew klasörünü barındıran klasörü seçiniz.") : Return
+            copyFromPath = fbdSearch.SelectedPath
+        End If
+        lblCopyFromPath.Text = copyFromPath
+        If File.Exists($"{Application.UserAppDataPath}\mERPotFrom.txt") Then File.Delete($"{Application.UserAppDataPath}\mERPotFrom.txt")
+        File.WriteAllText($"{Application.UserAppDataPath}\mERPotFrom.txt", copyFromPath)
+    End Sub
+
     Private Sub btnExit_Click(sender As Object, e As EventArgs) Handles btnExit.Click
-        Close()
+        If bgWorker.IsBusy Then
+            Dim dialogResult As DialogResult = MessageBox.Show("İşlemi yarıda kesmek istediğinize emin misiniz?", "Uyarı",
+                                                               MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation)
+            If dialogResult = DialogResult.Yes Then bgWorker.CancelAsync() : Close()
+        End If
     End Sub
 
 #End Region
