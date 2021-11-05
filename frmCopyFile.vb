@@ -184,8 +184,9 @@ Public Class frmCopyFile
         If bgWorker.IsBusy Then
             Dim dialogResult As DialogResult = MessageBox.Show("İşlemi yarıda kesmek istediğinize emin misiniz?", "Uyarı",
                                                                MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation)
-            If dialogResult = DialogResult.Yes Then bgWorker.CancelAsync() : Close()
+            If dialogResult = DialogResult.Yes Then bgWorker.CancelAsync()
         End If
+        Close()
     End Sub
 
 #End Region
